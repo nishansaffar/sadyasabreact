@@ -1,0 +1,38 @@
+| 🎮 Player Count | 🔢 Total Cards | 🕒 Avg Duration | Deck Name        |
+| --------------- | -------------- | --------------- | ---------------- |
+| 2               | \~52 cards     | \~10–15 mins    | `slimDeckForTwo` |
+| 3–4             | \~68 cards     | \~15–20 mins    | `standardDeck`   |
+| 5–8             | \~84 cards     | \~20+ mins      | `extendedDeck`   |
+
+
+| Dish Type    | Emoji | 2P Count | 3–4P Count | 5–8P Count |
+| ------------ | ----- | -------- | ---------- | ---------- |
+| Banana Leaf  | 🍃    | 4        | 5          | 6          |
+| Rice         | 🍚    | 3        | 4          | 4          |
+| Sambar       | 🥣    | 3        | 4          | 4          |
+| Aviyal       | 🥦    | 3        | 4          | 4          |
+| Kaalan       | 🍌    | 3        | 4          | 4          |
+| Thoran       | 🥬    | 3        | 4          | 4          |
+| Pachadi      | 🥒    | 3        | 4          | 4          |
+| Pappadam     | 🍘    | 3        | 4          | 4          |
+| Banana Chips | 🍌    | 4        | 4          | 4          |
+| Pickle       | 🌶    | 3        | 4          | 4          |
+| Payasam      | 🍮    | 1        | 2          | 2          |
+
+
+
+
+| Power Card          | Emoji | 2P | 3–4P | 5–8P |
+| ------------------- | ----- | -- | ---- | ---- |
+| Thiruvonam Rush     | 🚀    | 2  | 3    | 3    |
+| Double Pappadam     | 🍽    | 2  | 3    | 3    |
+| Muthassi’s Blessing | 🧓    | 2  | 3    | 3    |
+
+
+
+| Sabotage Card      | Emoji | 2P | 3–4P | 5–8P |
+| ------------------ | ----- | -- | ---- | ---- |
+| Sadya Disaster BGM | 🎧    | 2  | 3    | 3    |
+| Sambar Spilled     | 🥄    | 2  | 3    | 3    |
+| Payasam Overflow   | 🍯    | 2  | 3    | 3    |
+| Pappadam Crushed   | 🧻    | 2  | 3    | 3    |
