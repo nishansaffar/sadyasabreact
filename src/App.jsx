@@ -39,6 +39,8 @@ const App = () => {
   const [log, setLog] = useState([]);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [pendingDrawReason, setPendingDrawReason] = useState(null);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+
 
   useEffect(() => {
     if (!playerId) return;
@@ -192,6 +194,11 @@ const placeCard = async (card) => {
   }
 };
 
+const openDiscardModal = () => {
+  if (turn !== playerId) return alert("Not your turn!");
+  if (hand.length === 0) return alert("You have no cards to discard.");
+  setShowDiscardModal(true);
+};
 
 function removeOneCard(handArray, cardToRemove) {
   const index = handArray.indexOf(cardToRemove);
@@ -248,6 +255,19 @@ const onCardReplace = async (replaceCard) => {
   }
 };
 
+  const onDiscardCard = async (cardToDiscard) => {
+    const updatedHand = removeOneCard(hand, cardToDiscard);
+
+    await Promise.all([
+      set(ref(db, `/games/${GAME_ID}/players/${playerId}/hand`), updatedHand),
+      set(ref(db, `/games/${GAME_ID}/log`), [...log, `${playerId} discarded ${cardToDiscard}`]),
+      set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1')
+    ]);
+
+    setHand(updatedHand);
+    setShowDiscardModal(false);
+  };
+
   const cancelReplace = () => {
     setShowReplaceModal(false);
     setPendingDrawReason(null);
@@ -260,6 +280,13 @@ const onCardReplace = async (replaceCard) => {
         <CardSelectorModal
           hand={hand}
           onSelect={onCardReplace}
+          onCancel={cancelReplace}
+        />
+      )}
+      {showDiscardModal && (
+        <CardSelectorModal
+          hand={hand}
+          onSelect={onDiscardCard}
           onCancel={cancelReplace}
         />
       )}
@@ -304,6 +331,8 @@ const onCardReplace = async (replaceCard) => {
 
           <button className="draw" onClick={drawCard}>🎴 Draw Card</button>
           <p><strong>Current Turn:</strong> {turn}</p>
+
+          <button className="discard" onClick={openDiscardModal}>🗑️ Discard Card</button>
 
           <div className="deck-debug">
             <h3>Deck Debug (Current Deck)</h3>

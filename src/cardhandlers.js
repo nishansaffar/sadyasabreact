@@ -7,9 +7,16 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
 
   return {
     '🚀 Thiruvonam Rush': () => {
-      set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId); // skip opponent
-      set(ref(db, `/games/${GAME_ID}/log`), [...log, `${playerId} skipped ${opponentId}'s turn 🚀`]);
+      // Give player 2 dish placements for this turn
+      set(ref(db, `/games/${GAME_ID}/players/${playerId}/extraDishPlays`), 2);
+
+      // Add to the log
+      set(ref(db, `/games/${GAME_ID}/log`), [
+        ...log,
+        `${playerId} played 🚀 Thiruvonam Rush: can place 2 dish cards this turn`
+      ]);
     },
+
 
     '🍽 Double Pappadam': () => {
     const updatedDeck = [...deck];
@@ -84,19 +91,53 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
     },
 
     '🥄 Sambar Spilled': () => {
-      const theirTrayRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/tray`);
-      onValue(theirTrayRef, snapshot => {
-        const tray = snapshot.val() || [];
-        if (tray.length > 0) {
-          const removed = tray.pop();
-          set(theirTrayRef, tray);
+      const trayRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/tray`);
+      const handRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/hand`);
+
+      // Step 1: Try removing from tray
+      onValue(trayRef, traySnap => {
+        let tray = traySnap.val() || [];
+
+        if (tray.includes('🥣 Sambar')) {
+          tray = tray.filter((c, i, arr) => {
+            // remove only one
+            const idx = arr.indexOf('🥣 Sambar');
+            return i !== idx;
+          });
+
+          set(trayRef, tray);
           set(ref(db, `/games/${GAME_ID}/log`), [
             ...log,
-            `${playerId} spilled 🥄 Sambar: removed ${removed} from ${opponentId}'s tray`
+            `${playerId} played 🥄 Sambar Spilled: removed 🥣 Sambar from ${opponentId}'s tray`
           ]);
+          return;
         }
+
+        // Step 2: Try removing from hand
+        onValue(handRef, handSnap => {
+          let hand = handSnap.val() || [];
+
+          if (hand.includes('🥣 Sambar')) {
+            hand = hand.filter((c, i, arr) => {
+              const idx = arr.indexOf('🥣 Sambar');
+              return i !== idx;
+            });
+
+            set(handRef, hand);
+            set(ref(db, `/games/${GAME_ID}/log`), [
+              ...log,
+              `${playerId} played 🥄 Sambar Spilled: removed 🥣 Sambar from ${opponentId}'s hand`
+            ]);
+          } else {
+            set(ref(db, `/games/${GAME_ID}/log`), [
+              ...log,
+              `${playerId} played 🥄 Sambar Spilled: but ${opponentId} had no 🥣 Sambar`
+            ]);
+          }
+        }, { onlyOnce: true });
       }, { onlyOnce: true });
     },
+
 
     '🍯 Payasam Overflow': () => {
     const opponentHandRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/hand`);
