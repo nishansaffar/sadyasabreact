@@ -9,39 +9,9 @@ import Card from './components/card';
 import CardSelectorModal from './components/cardselectormodal';
 import SpecialActionModal from './components/specialactionmodal';
 import SadyaTray from './components/sadyatray';
+import { shuffleArray, removeOneCard, saveHistorySnapshot } from './utils/gamehelpers';
+import { GAME_ID, dishCards } from './utils/constants';
 import './App.css';
-
-const GAME_ID = 'game123';
-
-const dishCards = [
-  '🍃 Banana Leaf', '🍚 Rice', '🥣 Sambar', '🥦 Aviyal', '🍌 Kaalan',
-  '🥬 Thoran', '🥒 Pachadi', '🍘 Pappadam', '🍌 Banana Chips', '🌶 Pickle', '🍮 Payasam'
-];
-
-const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
-const removeOneCard = (handArray, cardToRemove) => {
-  const index = handArray.indexOf(cardToRemove);
-  if (index === -1) return handArray;
-  return [...handArray.slice(0, index), ...handArray.slice(index + 1)];
-};
-
-const saveHistorySnapshot = async () => {
-  const gameRef = ref(db, `/games/${GAME_ID}`);
-  const gameSnap = await get(gameRef);
-  const currentState = gameSnap.val();
-
-  // 🔥 Exclude `.history` from being saved into itself
-  const { history, ...stateWithoutHistory } = currentState;
-
-  const historyRef = ref(db, `/games/${GAME_ID}/history`);
-  const historySnap = await get(historyRef);
-  const historyArray = historySnap.val() || [];
-
-  const newHistory = [...historyArray, stateWithoutHistory];
-
-  await set(historyRef, newHistory);
-};
-
 
 const App = () => {
   const [deck, setDeck] = useState([]);
