@@ -14,9 +14,21 @@ const dishCards = [
   '🥬 Thoran', '🥒 Pachadi', '🍘 Pappadam', '🍌 Banana Chips', '🌶 Pickle', '🍮 Payasam'
 ];
 
-const Card = ({ card, onPlay }) => (
-  <div className="card" onClick={() => onPlay(card)}>{card}</div>
-);
+const Card = ({ card, onPlay }) => {
+  const [clicked, setClicked] = React.useState(false);
+
+  const handleClick = () => {
+    setClicked(true);
+    setTimeout(() => setClicked(false), 400); // 400ms fade
+    onPlay(card);
+  };
+
+  return (
+    <div className={`card${clicked ? ' clicked' : ''}`} onClick={handleClick}>
+      {card}
+    </div>
+  );
+};
 
 const SadyaTray = ({ placedCards }) => (
   <div className="tray">
@@ -57,6 +69,24 @@ const removeOneCard = (handArray, cardToRemove) => {
   if (index === -1) return handArray;
   return [...handArray.slice(0, index), ...handArray.slice(index + 1)];
 };
+
+const saveHistorySnapshot = async () => {
+  const gameRef = ref(db, `/games/${GAME_ID}`);
+  const gameSnap = await get(gameRef);
+  const currentState = gameSnap.val();
+
+  // 🔥 Exclude `.history` from being saved into itself
+  const { history, ...stateWithoutHistory } = currentState;
+
+  const historyRef = ref(db, `/games/${GAME_ID}/history`);
+  const historySnap = await get(historyRef);
+  const historyArray = historySnap.val() || [];
+
+  const newHistory = [...historyArray, stateWithoutHistory];
+
+  await set(historyRef, newHistory);
+};
+
 
 const App = () => {
   const [deck, setDeck] = useState([]);
@@ -129,6 +159,7 @@ const App = () => {
 
 const drawCard = async () => {
   if (turn !== playerId) return alert("Not your turn!");
+  await saveHistorySnapshot();
 
   const handRef = ref(db, `/games/${GAME_ID}/players/${playerId}/hand`);
   const deckRef = ref(db, `/games/${GAME_ID}/deck`);
@@ -169,41 +200,43 @@ const drawCard = async () => {
 };
 
   const onCardReplace = async (replaceCard) => {
-  const deckRef = ref(db, `/games/${GAME_ID}/deck`);
-  const handRef = ref(db, `/games/${GAME_ID}/players/${playerId}/hand`);
-  const logRef = ref(db, `/games/${GAME_ID}/log`);
+    await saveHistorySnapshot();
+    const deckRef = ref(db, `/games/${GAME_ID}/deck`);
+    const handRef = ref(db, `/games/${GAME_ID}/players/${playerId}/hand`);
+    const logRef = ref(db, `/games/${GAME_ID}/log`);
 
-  try {
-    const [deckSnap, handSnap] = await Promise.all([get(deckRef), get(handRef)]);
-    const currentDeck = deckSnap.val() || [];
-    const currentHand = handSnap.val() || [];
+    try {
+      const [deckSnap, handSnap] = await Promise.all([get(deckRef), get(handRef)]);
+      const currentDeck = deckSnap.val() || [];
+      const currentHand = handSnap.val() || [];
 
-    if (currentDeck.length === 0) return alert("Deck is empty.");
+      if (currentDeck.length === 0) return alert("Deck is empty.");
 
-    const updatedHand = removeOneCard(currentHand, replaceCard);
-    const shuffledDeck = shuffleArray([...currentDeck, replaceCard]);
-    const newCard = shuffledDeck.pop();
-    const finalHand = [...updatedHand, newCard];
+      const updatedHand = removeOneCard(currentHand, replaceCard);
+      const shuffledDeck = shuffleArray([...currentDeck, replaceCard]);
+      const newCard = shuffledDeck.pop();
+      const finalHand = [...updatedHand, newCard];
 
-    await Promise.all([
-      set(deckRef, shuffledDeck),
-      set(handRef, finalHand),
-      set(logRef, [...log, `${playerId} replaced ${replaceCard} and drew ${newCard}`]),
-      set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1')
-    ]);
+      await Promise.all([
+        set(deckRef, shuffledDeck),
+        set(handRef, finalHand),
+        set(logRef, [...log, `${playerId} replaced ${replaceCard} and drew ${newCard}`]),
+        set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1')
+      ]);
 
-    setDeck(shuffledDeck);
-    setHand(finalHand);
-    setShowReplaceModal(false);
-    setPendingDrawReason(null);
-  } catch (err) {
-    console.error("Replace error:", err);
-    alert("Error replacing card.");
-  }
-};
+      setDeck(shuffledDeck);
+      setHand(finalHand);
+      setShowReplaceModal(false);
+      setPendingDrawReason(null);
+    } catch (err) {
+      console.error("Replace error:", err);
+      alert("Error replacing card.");
+    }
+  };
 
 
   const onDiscardCard = async (cardToDiscard) => {
+    await saveHistorySnapshot();
     const updatedHand = removeOneCard(hand, cardToDiscard);
     await Promise.all([
       set(ref(db, `/games/${GAME_ID}/players/${playerId}/hand`), updatedHand),
@@ -221,14 +254,45 @@ const drawCard = async () => {
     setPendingDrawReason(null);
   };
 
+  const handleUndo = async () => {
+    const historyRef = ref(db, `/games/${GAME_ID}/history`);
+    const historySnap = await get(historyRef);
+    const history = historySnap.val() || [];
+
+    if (history.length < 1) {
+      alert("Nothing to undo.");
+      return;
+    }
+
+    const previousState = history.pop();
+
+    await Promise.all([
+      set(ref(db, `/games/${GAME_ID}`), previousState),
+      set(historyRef, history)
+    ]);
+
+    alert("🔄 Last move undone.");
+  };
+
   const openDiscardModal = () => {
     if (turn !== playerId) return alert("Not your turn!");
     if (hand.length === 0) return alert("You have no cards to discard.");
     setShowDiscardModal(true);
   };
 
-  const placeCard = async (card) => {
-    if (turn !== playerId) return alert("Not your turn!");
+const placeCard = async (card) => {
+  console.groupCollapsed(`🔽 [placeCard('${card}')] by ${playerId}`);
+
+  try {
+    if (turn !== playerId) {
+      console.warn("⛔ Not your turn.");
+      alert("Not your turn!");
+      console.groupEnd();
+      return;
+    }
+
+    await saveHistorySnapshot();
+    console.log("📦 Saved state snapshot for undo");
 
     const playerRef = ref(db, `/games/${GAME_ID}/players/${playerId}`);
     const playerSnap = await get(playerRef);
@@ -238,27 +302,66 @@ const drawCard = async () => {
     const lastMove = log[log.length - 1] || '';
     const madeMove = lastMove.startsWith(`${playerId} placed`) || lastMove.startsWith(`${playerId} drew`);
 
-    if (madeMove && extraDishPlays === 0) return alert("You already made a move!");
+    console.log("🧠 Last Move:", lastMove);
+    console.log("🎮 Player:", playerId);
+    console.log("🎯 Turn:", turn);
+    console.log("🍛 Tray:", tray);
+    console.log("✋ Hand:", hand);
+    console.log("💥 Card played:", card);
+    console.log("🌀 Extra dish plays left:", extraDishPlays);
 
-    // ✅ Enforce Banana Leaf rule for all card plays
+    if (madeMove && extraDishPlays === 0) {
+      console.warn("⛔ Already made a move this turn.");
+      alert("You already made a move!");
+      console.groupEnd();
+      return;
+    }
+
     if (tray.length === 0 && card !== '🍃 Banana Leaf') {
-      return alert("Start with 🍃 Banana Leaf!");
+      console.warn("⛔ Must start with 🍃 Banana Leaf");
+      alert("Start with 🍃 Banana Leaf!");
+      console.groupEnd();
+      return;
     }
 
     const newHand = removeOneCard(hand, card);
-    const specialCardHandlers = getSpecialCardHandlers(db, GAME_ID, playerId, hand, deck, log,  setDeck, setHand, setLog, setSpecialActionMessage);
+    const specialCardHandlers = getSpecialCardHandlers(
+      db,
+      GAME_ID,
+      playerId,
+      hand,
+      deck,
+      log,
+      setDeck,
+      setHand,
+      setLog,
+      setSpecialActionMessage
+    );
 
     if (specialCardHandlers[card]) {
+      console.log("✨ Playing special card:", card);
       await Promise.all([
         set(ref(db, `/games/${GAME_ID}/players/${playerId}/hand`), newHand),
         set(ref(db, `/games/${GAME_ID}/log`), [...log, `${playerId} played ${card}`])
       ]);
       specialCardHandlers[card]();
+      console.groupEnd();
       return;
     }
 
-    if (!dishCards.includes(card)) return alert("Only dish cards allowed!");
-    if (tray.includes(card)) return alert(`${card} already placed.`);
+    if (!dishCards.includes(card)) {
+      console.warn("⛔ Invalid dish card played:", card);
+      alert("Only dish cards allowed!");
+      console.groupEnd();
+      return;
+    }
+
+    if (tray.includes(card)) {
+      console.warn("⛔ Dish already placed:", card);
+      alert(`${card} already placed.`);
+      console.groupEnd();
+      return;
+    }
 
     const updatedTray = [...tray, card];
     const uniqueDishes = [...new Set(updatedTray.filter(c => dishCards.includes(c)))];
@@ -269,6 +372,11 @@ const drawCard = async () => {
       finalLog.push(`${playerId} completed the Sadya and won! 🎉`);
     }
 
+    console.log("📥 Firebase write:");
+    console.log("➡ New tray:", updatedTray);
+    console.log("➡ New hand:", newHand);
+    console.log("📝 Log update:", finalLog);
+
     await Promise.all([
       set(ref(db, `/games/${GAME_ID}/players/${playerId}/hand`), newHand),
       set(ref(db, `/games/${GAME_ID}/players/${playerId}/tray`), updatedTray),
@@ -277,18 +385,34 @@ const drawCard = async () => {
 
     if (extraDishPlays > 0) {
       const newPlays = extraDishPlays - 1;
+      console.log("🧮 Reducing extraDishPlays to:", newPlays);
       await set(ref(db, `/games/${GAME_ID}/players/${playerId}/extraDishPlays`), newPlays);
       if (newPlays === 0) {
-        set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1');
+        console.log("🔄 Ending turn after special allowance");
+        await set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1');
       }
     } else {
-      set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1');
+      console.log("🔄 Ending turn normally");
+      await set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1');
     }
-  };
+
+    console.log("✅ Card placed successfully");
+  } catch (err) {
+    console.error("🔥 placeCard error:", err);
+    alert("An error occurred while placing the card.");
+  } finally {
+    console.groupEnd();
+  }
+};
 
   return (
     <div className={`app ${turn === playerId ? 'your-turn' : 'not-your-turn'}`}>
       <h1>Sadya Sabotage 🥳</h1>
+      {turn && (
+        <h2 className="turn-indicator">
+          {turn === playerId ? "🔔 It's your turn!" : `🕒 It's ${turn === 'player1' ? 'Player 1' : 'Player 2'}'s turn`}
+        </h2>
+      )}
 
       {showReplaceModal && (
         <CardSelectorModal
@@ -332,7 +456,8 @@ const drawCard = async () => {
       ) : (
         <>
           <p className="player-label">🎮 You are <strong>{playerId}</strong></p>
-          <button className="start" onClick={startGame}>Reset and Start Game</button>
+          <button className="start" onClick={startGame}>Restart game ↻</button>
+          {/*<button className="undo" onClick={handleUndo}>↩️ Undo</button>*/}
           <p><strong>Your Hand ({hand.length} cards):</strong></p>
           <div className="hand">{hand.map((card, i) => <Card key={i} card={card} onPlay={placeCard} />)}</div>
           <SadyaTray placedCards={tray} />

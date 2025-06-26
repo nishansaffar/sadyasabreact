@@ -24,7 +24,7 @@ export const slimDeckForTwo = [
   '🎧 Sadya Disaster BGM', '🎧 Sadya Disaster BGM',
   '🥄 Sambar Spilled', '🥄 Sambar Spilled',
   '🍯 Payasam Overflow', '🍯 Payasam Overflow',
-  '🧻 Pappadam Crushed', '🧻 Pappadam Crushed'
+  /*'🧻 Pappadam Crushed', '🧻 Pappadam Crushed'*/
 ];
 
 //68 cards for 3 to 4 players
