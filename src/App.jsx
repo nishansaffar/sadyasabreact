@@ -3,8 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { ref, onValue, set, remove, get } from 'firebase/database';
-import { getDeckForPlayers } from './decklists';
-import { getSpecialCardHandlers } from './cardhandlers';
+import { getDeckForPlayers } from './logic/decklists';
+import { getSpecialCardHandlers } from './logic/cardhandlers';
+import Card from './components/card';
+import CardSelectorModal from './components/cardselectormodal';
+import SpecialActionModal from './components/specialactionmodal';
+import SadyaTray from './components/sadyatray';
 import './App.css';
 
 const GAME_ID = 'game123';
@@ -13,55 +17,6 @@ const dishCards = [
   '🍃 Banana Leaf', '🍚 Rice', '🥣 Sambar', '🥦 Aviyal', '🍌 Kaalan',
   '🥬 Thoran', '🥒 Pachadi', '🍘 Pappadam', '🍌 Banana Chips', '🌶 Pickle', '🍮 Payasam'
 ];
-
-const Card = ({ card, onPlay }) => {
-  const [clicked, setClicked] = React.useState(false);
-
-  const handleClick = () => {
-    setClicked(true);
-    setTimeout(() => setClicked(false), 400); // 400ms fade
-    onPlay(card);
-  };
-
-  return (
-    <div className={`card${clicked ? ' clicked' : ''}`} onClick={handleClick}>
-      {card}
-    </div>
-  );
-};
-
-const SadyaTray = ({ placedCards }) => (
-  <div className="tray">
-    <h3>Your Sadya Tray 🍽️</h3>
-    <div className="tray-cards">
-      {placedCards.map((c, i) => <div key={i} className="tray-card">{c}</div>)}
-    </div>
-  </div>
-);
-
-const CardSelectorModal = ({ hand, onSelect, onCancel, title }) => (
-  <div className="modal-backdrop">
-    <div className="modal">
-      <h3>{title}</h3>
-      <div className="hand modal-hand">
-        {hand.map((card, i) => (
-          <div key={i} className="card" onClick={() => onSelect(card)}>{card}</div>
-        ))}
-      </div>
-      <button onClick={onCancel}>Cancel</button>
-    </div>
-  </div>
-);
-
-const SpecialActionModal = ({ message, onClose }) => (
-  <div className="modal-backdrop">
-    <div className="modal special-modal">
-      <h3>✨ Special Move</h3>
-      <p>{message}</p>
-      <button onClick={onClose}>Okay</button>
-    </div>
-  </div>
-);
 
 const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
 const removeOneCard = (handArray, cardToRemove) => {

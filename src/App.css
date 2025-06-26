@@ -141,3 +141,8 @@ button:hover{
   background-color: #4f6cff;
 }
 
+h1{
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  color: #333;
+}
