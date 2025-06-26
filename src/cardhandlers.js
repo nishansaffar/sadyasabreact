@@ -1,23 +1,32 @@
 import { ref, set, onValue } from 'firebase/database';
 
-export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, setDeck, setHand, setLog) => {
+export const getSpecialCardHandlers = (
+  db,
+  GAME_ID,
+  playerId,
+  hand,
+  deck,
+  log,
+  setDeck,
+  setHand,
+  setLog,
+  setSpecialActionMessage
+) => {
   const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+
   const endTurn = () =>
-    set(ref(db, `/games/${GAME_ID}/currentTurn`), playerId === 'player1' ? 'player2' : 'player1');
+    set(ref(db, `/games/${GAME_ID}/currentTurn`), opponentId);
 
   return {
-    // 🚀 Thiruvonam Rush — gives player 2 extra dish placements
-  '🚀 Thiruvonam Rush': () => {
-    set(ref(db, `/games/${GAME_ID}/players/${playerId}/extraDishPlays`), 2);
-    set(ref(db, `/games/${GAME_ID}/log`), [
-      ...log,
-      `${playerId} played 🚀 Thiruvonam Rush: can place 2 dish cards this turn`
-    ]);
-    // ✅ Do not change turn — allow player to place two dish cards
-  },
+    '🚀 Thiruvonam Rush': () => {
+      set(ref(db, `/games/${GAME_ID}/players/${playerId}/extraDishPlays`), 2);
+      set(ref(db, `/games/${GAME_ID}/log`), [
+        ...log,
+        `${playerId} played 🚀 Thiruvonam Rush: can place 2 dish cards this turn`
+      ]);
+      setSpecialActionMessage(`${playerId} activated 🚀 Thiruvonam Rush and can place 2 dish cards this turn`);
+    },
 
-
-    // 🍽 Double Pappadam — draws two cards
     '🍽 Double Pappadam': () => {
       const updatedDeck = [...deck];
       const drawnCard1 = updatedDeck.pop();
@@ -40,6 +49,7 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
           ])
         ]);
 
+        setSpecialActionMessage(`${playerId} used 🍽 Double Pappadam and drew 2 cards`);
         endTurn();
       };
 
@@ -64,7 +74,6 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
       }
     },
 
-    // 🧓 Muthassi’s Blessing — draw 2 cards
     '🧓 Muthassi’s Blessing': () => {
       const updatedDeck = [...deck];
       const extraCards = [updatedDeck.pop(), updatedDeck.pop()];
@@ -79,10 +88,12 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
           ...log,
           `${playerId} got 🧓 Muthassi’s Blessing: drew ${extraCards.join(', ')}`
         ])
-      ]).then(endTurn);
+      ]).then(() => {
+        setSpecialActionMessage(`${playerId} used 🧓 Muthassi’s Blessing and drew 2 secret cards`);
+        endTurn();
+      });
     },
 
-    // 🎧 Sadya Disaster BGM — shuffle opponent's tray
     '🎧 Sadya Disaster BGM': () => {
       const theirTrayRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/tray`);
       onValue(theirTrayRef, snapshot => {
@@ -93,11 +104,11 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
           ...log,
           `${playerId} played 🎧 Sadya Disaster BGM: shuffled ${opponentId}'s tray`
         ]);
+        setSpecialActionMessage(`${playerId} shuffled ${opponentId}'s tray using 🎧 Sadya Disaster BGM`);
         endTurn();
       }, { onlyOnce: true });
     },
 
-    // 🥄 Sambar Spilled — remove Sambar from tray or hand
     '🥄 Sambar Spilled': () => {
       const trayRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/tray`);
       const handRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/hand`);
@@ -112,23 +123,26 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
             ...log,
             `${playerId} played 🥄 Sambar Spilled: removed 🥣 Sambar from ${opponentId}'s tray`
           ]);
+          setSpecialActionMessage(`${playerId} removed 🥣 Sambar from ${opponentId}'s tray using 🥄 Sambar Spilled`);
           endTurn();
         } else {
           onValue(handRef, handSnap => {
-            let hand = handSnap.val() || [];
+            let oppHand = handSnap.val() || [];
 
-            if (hand.includes('🥣 Sambar')) {
-              hand = hand.filter((c, i, arr) => i !== arr.indexOf('🥣 Sambar'));
-              set(handRef, hand);
+            if (oppHand.includes('🥣 Sambar')) {
+              oppHand = oppHand.filter((c, i, arr) => i !== arr.indexOf('🥣 Sambar'));
+              set(handRef, oppHand);
               set(ref(db, `/games/${GAME_ID}/log`), [
                 ...log,
                 `${playerId} played 🥄 Sambar Spilled: removed 🥣 Sambar from ${opponentId}'s hand`
               ]);
+              setSpecialActionMessage(`${playerId} removed 🥣 Sambar from ${opponentId}'s hand using 🥄 Sambar Spilled`);
             } else {
               set(ref(db, `/games/${GAME_ID}/log`), [
                 ...log,
                 `${playerId} played 🥄 Sambar Spilled: but ${opponentId} had no 🥣 Sambar`
               ]);
+              setSpecialActionMessage(`${playerId} played 🥄 Sambar Spilled, but ${opponentId} had no 🥣 Sambar`);
             }
 
             endTurn();
@@ -137,7 +151,6 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
       }, { onlyOnce: true });
     },
 
-    // 🍯 Payasam Overflow — remove Payasam from tray or hand
     '🍯 Payasam Overflow': () => {
       const trayRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/tray`);
       const handRef = ref(db, `/games/${GAME_ID}/players/${opponentId}/hand`);
@@ -152,23 +165,26 @@ export const getSpecialCardHandlers = (db, GAME_ID, playerId, hand, deck, log, s
             ...log,
             `${playerId} played 🍯 Payasam Overflow: removed 🍮 Payasam from ${opponentId}'s tray`
           ]);
+          setSpecialActionMessage(`${playerId} removed 🍮 Payasam from ${opponentId}'s tray using 🍯 Payasam Overflow`);
           endTurn();
         } else {
           onValue(handRef, handSnap => {
-            let hand = handSnap.val() || [];
+            let oppHand = handSnap.val() || [];
 
-            if (hand.includes('🍮 Payasam')) {
-              hand = hand.filter((c, i, arr) => i !== arr.indexOf('🍮 Payasam'));
-              set(handRef, hand);
+            if (oppHand.includes('🍮 Payasam')) {
+              oppHand = oppHand.filter((c, i, arr) => i !== arr.indexOf('🍮 Payasam'));
+              set(handRef, oppHand);
               set(ref(db, `/games/${GAME_ID}/log`), [
                 ...log,
                 `${playerId} played 🍯 Payasam Overflow: removed 🍮 Payasam from ${opponentId}'s hand`
               ]);
+              setSpecialActionMessage(`${playerId} removed 🍮 Payasam from ${opponentId}'s hand using 🍯 Payasam Overflow`);
             } else {
               set(ref(db, `/games/${GAME_ID}/log`), [
                 ...log,
                 `${playerId} played 🍯 Payasam Overflow: but ${opponentId} had no 🍮 Payasam`
               ]);
+              setSpecialActionMessage(`${playerId} played 🍯 Payasam Overflow, but ${opponentId} had no 🍮 Payasam`);
             }
 
             endTurn();

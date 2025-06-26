@@ -41,6 +41,16 @@ const CardSelectorModal = ({ hand, onSelect, onCancel, title }) => (
   </div>
 );
 
+const SpecialActionModal = ({ message, onClose }) => (
+  <div className="modal-backdrop">
+    <div className="modal special-modal">
+      <h3>✨ Special Move</h3>
+      <p>{message}</p>
+      <button onClick={onClose}>Okay</button>
+    </div>
+  </div>
+);
+
 const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
 const removeOneCard = (handArray, cardToRemove) => {
   const index = handArray.indexOf(cardToRemove);
@@ -59,6 +69,10 @@ const App = () => {
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [pendingDrawReason, setPendingDrawReason] = useState(null);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [specialActionMessage, setSpecialActionMessage] = useState(null);
+  const [showSpecialAction, setShowSpecialAction] = useState(false);
+
+
 
   useEffect(() => {
     if (!playerId) return;
@@ -80,7 +94,18 @@ const App = () => {
       setOpponentTray(theirTray);
     });
     onValue(turnRef, snapshot => setTurn(snapshot.val()));
-    onValue(logRef, snapshot => setLog(snapshot.val() || []));
+        onValue(logRef, (snapshot) => {
+      const entries = snapshot.val() || [];
+      setLog(entries);
+
+      const last = entries[entries.length - 1];
+      if (last?.includes('played')) {
+        // Show modal for special cards played
+        setSpecialActionMessage(last);
+        setShowSpecialAction(true); // <-- local visibility
+      }
+    });
+
   }, [playerId]);
 
   const startGame = async () => {
@@ -215,8 +240,13 @@ const drawCard = async () => {
 
     if (madeMove && extraDishPlays === 0) return alert("You already made a move!");
 
+    // ✅ Enforce Banana Leaf rule for all card plays
+    if (tray.length === 0 && card !== '🍃 Banana Leaf') {
+      return alert("Start with 🍃 Banana Leaf!");
+    }
+
     const newHand = removeOneCard(hand, card);
-    const specialCardHandlers = getSpecialCardHandlers(db, GAME_ID, playerId, hand, deck, log, setDeck, setHand, setLog);
+    const specialCardHandlers = getSpecialCardHandlers(db, GAME_ID, playerId, hand, deck, log,  setDeck, setHand, setLog, setSpecialActionMessage);
 
     if (specialCardHandlers[card]) {
       await Promise.all([
@@ -227,7 +257,6 @@ const drawCard = async () => {
       return;
     }
 
-    if (tray.length === 0 && card !== '🍃 Banana Leaf') return alert("Start with 🍃 Banana Leaf!");
     if (!dishCards.includes(card)) return alert("Only dish cards allowed!");
     if (tray.includes(card)) return alert(`${card} already placed.`);
 
@@ -284,6 +313,15 @@ const drawCard = async () => {
           title="Select a card to discard:"
         />
       )}
+
+      {specialActionMessage && showSpecialAction && (
+        <SpecialActionModal
+          message={specialActionMessage}
+          onClose={() => setShowSpecialAction(false)}
+        />
+      )}
+
+
 
       {!playerId ? (
         <div className="select-player">
