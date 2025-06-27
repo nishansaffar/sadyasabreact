@@ -26,9 +26,9 @@ const App = () => {
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [specialActionMessage, setSpecialActionMessage] = useState(null);
   const [showSpecialAction, setShowSpecialAction] = useState(false);
-
-
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRestarting, setIsRestarting] = useState(false);
+  
   useEffect(() => {
     if (!playerId) return;
 
@@ -49,7 +49,7 @@ const App = () => {
       setOpponentTray(theirTray);
     });
     onValue(turnRef, snapshot => setTurn(snapshot.val()));
-        onValue(logRef, (snapshot) => {
+    onValue(logRef, (snapshot) => {
       const entries = snapshot.val() || [];
       setLog(entries);
 
@@ -57,13 +57,21 @@ const App = () => {
       if (last?.includes('played')) {
         // Show modal for special cards played
         setSpecialActionMessage(last);
-        setShowSpecialAction(true); // <-- local visibility
+        setShowSpecialAction(true);
+      }
+
+      // ✅ Only stop loading when game actually started
+      if (entries.length && entries[0] === 'Game started.') {
+        setIsLoading(false);
+        setIsRestarting(false);
       }
     });
 
   }, [playerId]);
 
   const startGame = async () => {
+    setIsRestarting(true);
+    setIsLoading(true);
     await remove(ref(db, `/games/${GAME_ID}`));
     const deck = shuffleArray([...getDeckForPlayers(2)]);
     const player1Hand = deck.splice(0, 7);
@@ -79,7 +87,13 @@ const App = () => {
       log: ['Game started.']
     };
 
-    set(ref(db, `/games/${GAME_ID}`), gameState);
+    await set(ref(db, `/games/${GAME_ID}`), gameState);
+
+    // Let Firebase listeners pick up the state; this delay helps smooth out UI flash
+    setTimeout(() => {
+      setIsRestarting(false);
+      // ⚠️ Don't set `isLoading = false` here, let onValue from log do it
+    }, 1000);
   };
 
 const drawCard = async () => {
@@ -333,12 +347,6 @@ const placeCard = async (card) => {
   return (
     <div className={`app ${turn === playerId ? 'your-turn' : 'not-your-turn'}`}>
       <h1>Sadya Sabotage 🥳</h1>
-      {turn && (
-        <h2 className="turn-indicator">
-          {turn === playerId ? "🔔 It's your turn!" : `🕒 It's ${turn === 'player1' ? 'Player 1' : 'Player 2'}'s turn`}
-        </h2>
-      )}
-
       {showReplaceModal && (
         <CardSelectorModal
           hand={hand}
@@ -381,7 +389,15 @@ const placeCard = async (card) => {
       ) : (
         <>
           <p className="player-label">🎮 You are <strong>{playerId}</strong></p>
-          <button className="start" onClick={startGame}>Restart game ↻</button>
+          {turn && (<h2 className="turn-indicator">{turn === playerId ? "🔔 It's your turn!" : `🕒 It's ${turn === 'player1' ? 'Player 1' : 'Player 2'}'s turn`}</h2>
+          )}
+          {isLoading && (
+            <div className="loading-screen">
+              <div className="spinner" />
+              <p>{isRestarting ? 'Restarting game...' : 'Loading game...'}</p>
+            </div>
+          )}
+          <button className="start" onClick={startGame}>Restart game ⟳</button>
           {/*<button className="undo" onClick={handleUndo}>↩️ Undo</button>*/}
           <p><strong>Your Hand ({hand.length} cards):</strong></p>
           <div className="hand">{hand.map((card, i) => <Card key={i} card={card} onPlay={placeCard} />)}</div>

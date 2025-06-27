@@ -1,5 +1,4 @@
 // components/CardSelectorModal.js
-import React from 'react';
 //import './CardSelectorModal.css'; // optional for styling
 
 const CardSelectorModal = ({ hand, onSelect, onCancel, title }) => (

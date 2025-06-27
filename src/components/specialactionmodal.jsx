@@ -1,5 +1,4 @@
 // components/SpecialActionModal.jsx
-import React from 'react';
 
 const SpecialActionModal = ({ message, onClose }) => (
   <div className="modal-backdrop">

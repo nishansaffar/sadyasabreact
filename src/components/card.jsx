@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 //import './Card.css'; // optional: if card-specific styles are needed
 
 const Card = ({ card, onPlay }) => {

@@ -1,5 +1,4 @@
 // components/SadyaTray.jsx
-import React from 'react';
 
 const SadyaTray = ({ placedCards }) => (
   <div className="tray">
