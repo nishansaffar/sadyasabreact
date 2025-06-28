@@ -11,7 +11,7 @@ import { shuffleArray, removeOneCard, saveHistorySnapshot } from './utils/gamehe
 import { GAME_ID, dishCards } from './utils/constants';
 import './App.css';
 
-const VERSION = 'v1.1 – Dynamic Player Count';
+const VERSION = 'v1.1.5 – Dynamic Player Count';
 
 const App = () => {
   const [playerCount, setPlayerCount] = useState(2);
