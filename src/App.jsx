@@ -11,7 +11,7 @@ import { shuffleArray, removeOneCard, saveHistorySnapshot } from './utils/gamehe
 import { GAME_ID, dishCards } from './utils/constants';
 import './App.css';
 
-const VERSION = 'v1.1.7 – Dynamic Player Count, responsive UI, special cards support';
+const VERSION = 'v1.1.8 – Dynamic Player Count, responsive UI, special cards support, discard fix';
 
 const App = () => {
   const [playerCount, setPlayerCount] = useState(2);
@@ -237,6 +237,7 @@ const App = () => {
 
   const onDiscardCard = async (cardToDiscard) => {
     //await saveHistorySnapshot(db, GAME_ID);
+    if (turn !== playerId) return alert('Not your turn!');
     const updatedHand = removeOneCard(hand, cardToDiscard);
 
     await Promise.all([
@@ -334,6 +335,7 @@ const App = () => {
 
       {!playerId ? (
         <div className="setup">
+        <h3>Game ID: <span style={{fontFamily: "monospace"}}>{GAME_ID}</span></h3>
         <h3>Set number of players:</h3>
         <label>Player Count: </label>
         <input
@@ -382,7 +384,7 @@ const App = () => {
           </div>
 
           <button className="draw" onClick={drawCard}>🎴 Draw Card</button>
-          <button className="discard" onClick={() => setShowDiscardModal(true)}>🗑️ Discard Card</button>
+          <button className="discard" onClick={() => {if (turn !== playerId) return alert('Not your turn!'); else setShowDiscardModal(true)}}>🗑️ Discard Card</button>
 
           <div className="deck-debug">
             <h3>Deck Debug</h3>

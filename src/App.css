@@ -126,7 +126,7 @@ html, body, #root {
 }
 
 .modal {
-  background: white;
+  background: rgb(196, 41, 41);
   padding: 2rem;
   border-radius: 8px;
   max-width: 400px;
