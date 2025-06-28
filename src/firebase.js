@@ -12,6 +12,7 @@ const firebaseConfig = {
   authDomain: "sadyasab-game.firebaseapp.com",
   projectId: "sadyasab-game",
   storageBucket: "sadyasab-game.firebasestorage.app",
+  databaseURL: "https://sadyasab-game-default-rtdb.firebaseio.com",
   messagingSenderId: "426015850680",
   appId: "1:426015850680:web:2a759b55b9c4581ddd744d",
   measurementId: "G-CDYQEENFLL"

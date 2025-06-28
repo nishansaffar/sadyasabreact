@@ -1,7 +1,5 @@
 // utils/gameHelpers.js
 import { ref, get, set } from 'firebase/database';
-import { db } from '../firebase';
-import { GAME_ID } from './constants';
 
 export const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
 
@@ -11,7 +9,7 @@ export const removeOneCard = (handArray, cardToRemove) => {
   return [...handArray.slice(0, index), ...handArray.slice(index + 1)];
 };
 
-export const saveHistorySnapshot = async () => {
+export const saveHistorySnapshot = async (db, GAME_ID) => {
   const gameRef = ref(db, `/games/${GAME_ID}`);
   const historyRef = ref(db, `/games/${GAME_ID}/history`);
 
