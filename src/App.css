@@ -19,6 +19,17 @@ html, body, #root {
   justify-content: flex-start;
 }
 
+.header {
+  height: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #615a5a; /* light green */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 
 .select-player {
   display: flex;
