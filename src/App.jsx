@@ -11,7 +11,7 @@ import { shuffleArray, removeOneCard, saveHistorySnapshot } from './utils/gamehe
 import { GAME_ID, dishCards } from './utils/constants';
 import './App.css';
 
-const VERSION = 'v1.1.5 – Dynamic Player Count';
+const VERSION = 'v1.1.6 – Dynamic Player Count, responsive UI';
 
 const App = () => {
   const [playerCount, setPlayerCount] = useState(2);
@@ -302,8 +302,8 @@ const App = () => {
 
   return (
     <div className={`app ${turn === playerId ? 'your-turn' : 'not-your-turn'}`}>
-      <div className='header'><h1>Sadya Sabotage 🥳 <span className="version">{VERSION}</span></h1>
-                <button className="start" onClick={() => startGame()}>
+      <div className='header'><h1>Sadya Sabotage </h1><span className="version">{VERSION}</span>
+            <button className="start" onClick={() => startGame()}>
             Restart game ⟳
           </button></div>
 
