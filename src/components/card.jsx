@@ -6,7 +6,7 @@ const Card = ({ card, onPlay }) => {
 
   const handleClick = () => {
     setClicked(true);
-    setTimeout(() => setClicked(false), 400); // 400ms animation
+    setTimeout(() => setClicked(false), 500); // 400ms animation
     onPlay(card);
   };
 

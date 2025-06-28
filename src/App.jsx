@@ -30,6 +30,15 @@ const App = () => {
   useEffect(() => {
     if (!playerId) return;
 
+    const gameRef = ref(db, `/games/${GAME_ID}`);
+    get(gameRef).then(snapshot => {
+      const game = snapshot.val();
+      if (!game || !Array.isArray(game.log) || game.log[0] !== 'Game started.') {
+        console.warn("🛠 No valid game state found. Starting new game...");
+        startGame();
+      }
+    });
+
     const handRef = ref(db, `/games/${GAME_ID}/players/${playerId}/hand`);
     const playersRef = ref(db, `/games/${GAME_ID}/players`);
     const turnRef = ref(db, `/games/${GAME_ID}/currentTurn`);
