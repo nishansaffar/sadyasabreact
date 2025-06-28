@@ -268,12 +268,37 @@ const App = () => {
       if (alreadyMoved && extraDishPlays === 0) return alert('You already made a move!');
 
       if (tray.length === 0 && card !== '🍃 Banana Leaf') return alert('Start with 🍃 Banana Leaf!');
-      if (!dishCards.includes(card)) return alert('Only dish cards allowed!');
-      if (tray.includes(card)) return alert(`${card} already placed.`);
+
+      if (dishCards.includes(card) && tray.includes(card)) return alert(`${card} already placed.`);
 
       const newHand = removeOneCard(hand, card);
       const newTray = [...tray, card];
       const logEntry = `${playerId} placed ${card} on tray`;
+      
+            
+      if (!dishCards.includes(card)){
+        const specialCardHandlers = getSpecialCardHandlers(
+          db,
+          GAME_ID,
+          playerId,
+          hand,
+          deck,
+          log,
+          setDeck,
+          setHand,
+          setLog,
+          setSpecialActionMessage,      // 👈 add this
+          setShowSpecialAction          // 👈 and this
+        );
+        if (specialCardHandlers[card]) {
+          await Promise.all([
+            set(ref(db, `/games/${GAME_ID}/players/${playerId}/hand`), newHand),
+            set(ref(db, `/games/${GAME_ID}/log`), [...log, `${playerId} played ${card}`])
+          ]);
+          specialCardHandlers[card]();
+          return; // Special cards don't auto switch turn anymore — they're responsible for their logic
+        }
+      }
 
       const newLog = [...log, logEntry];
       if ([...new Set(newTray.filter(c => dishCards.includes(c)))].length === 11) {

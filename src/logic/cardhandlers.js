@@ -10,7 +10,8 @@ export const getSpecialCardHandlers = (
   setDeck,
   setHand,
   setLog,
-  setSpecialActionMessage
+  setSpecialActionMessage,
+  setShowSpecialAction
 ) => {
   const opponentId = playerId === 'player1' ? 'player2' : 'player1';
 
