@@ -1,7 +1,7 @@
 // constants.jsx
 
 // Game ID (can later be dynamic if needed)
-export const GAME_ID = 'dev123';
+export const GAME_ID = 'game123';
 
 // All valid dish cards
 export const dishCards = [
